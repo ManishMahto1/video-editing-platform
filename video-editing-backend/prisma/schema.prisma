@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Video {
+  id          String   @id @default(uuid())
+  name        String
+  uploadUrl   String
+  finalUrl    String?
+  duration    Int?
+  size        Int?
+  status      String   @default("pending") // pending, rendering, rendered, deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
