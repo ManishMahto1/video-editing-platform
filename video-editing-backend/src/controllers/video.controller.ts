@@ -1,16 +1,123 @@
 import fs from 'fs';
 import path from 'path';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import ffmpeg from 'fluent-ffmpeg';
-import { NextFunction } from 'express';
+import multer from 'multer';
+
 const prisma = new PrismaClient();
+const videoFolderPath = path.join(__dirname, '../Uploads/'); // Project root
 
-// Linux common path
-ffmpeg.setFfmpegPath('/usr/bin/ffmpeg');
+// Ensure uploads directory exists
+if (!fs.existsSync(videoFolderPath)) {
+  fs.mkdirSync(videoFolderPath, { recursive: true });
+}
 
-// File path setup
-const videoFolderPath = path.join(__dirname, '../../uploads/');
+// Set FFmpeg path for Windows
+ffmpeg.setFfmpegPath('C:\\ffmpeg\\bin\\ffmpeg.exe');
+
+// Multer config for SRT
+const srtStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, videoFolderPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `temp_subtitles_${Date.now()}.srt`);
+  },
+});
+
+const srtUpload = multer({
+  storage: srtStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/plain' || file.originalname.endsWith('.srt')) {
+      cb(null, true);
+    } else {
+      console.error('Invalid file type:', file.mimetype);
+      
+    }
+  },
+}).single('srtFile');
+
+export const addSubtitles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  srtUpload(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({ error: err.message });
+    }
+
+    try {
+      const { id } = req.params;
+      const srtFile = req.file;
+
+      if (!srtFile) {
+        return res.status(400).json({ error: 'No SRT file uploaded' });
+      }
+
+      const video = await prisma.video.findUnique({ where: { id } });
+      if (!video) {
+        fs.unlinkSync(srtFile.path);
+        return res.status(404).json({ error: 'Video not found' });
+      }
+
+      const sanitizedName = video.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const inputPath = path.resolve(video.uploadUrl);
+      const outputPath = path.join(videoFolderPath, `subtitled_${sanitizedName}`);
+
+      if (!fs.existsSync(inputPath)) {
+        fs.unlinkSync(srtFile.path);
+        return res.status(404).json({ error: 'Input video file not found' });
+      }
+
+      if (!fs.existsSync(srtFile.path)) {
+        fs.unlinkSync(srtFile.path);
+        return res.status(400).json({ error: 'SRT file not found' });
+      }
+
+      // Log paths for debugging
+      console.log('Input path:', inputPath);
+      console.log('Output path:', outputPath);
+      console.log('SRT path:', srtFile.path);
+
+      // Run FFmpeg with subtitles
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(inputPath)
+          .videoFilters(`subtitles='${srtFile.path.replace(/\\/g, '\\\\').replace(/:/g, '\\:')}'`)
+          .outputOptions(['-c:v libx264', '-c:a copy']) // Ensure MP4 compatibility
+          .output(outputPath)
+          .on('end', () => {
+            fs.unlinkSync(srtFile.path);
+            resolve();
+          })
+          .on('error', (error) => {
+            console.error('FFmpeg error:', error);
+            if (fs.existsSync(srtFile.path)) fs.unlinkSync(srtFile.path);
+            reject(error);
+          })
+          .run();
+      });
+
+      // Update video metadata
+      await prisma.video.update({
+        where: { id },
+        data: {
+          finalUrl: path.join('/uploads', `subtitled_${sanitizedName}`), // Relative path for frontend
+          status: 'rendered',
+        },
+      });
+
+      res.json({
+        message: 'Subtitles added successfully',
+        filePath: outputPath,
+      });
+    } catch (error) {
+      console.error('Error adding subtitles:', error);
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      next(error);
+    }
+  });
+};
 
 // Video Upload Handler
 export const uploadVideo = async (req: Request, res: Response) => {
@@ -78,35 +185,6 @@ export const trimVideo = async (req: Request, res: Response, next: NextFunction)
     res.status(500).json({ error: 'Error trimming video' });
   }
 };
-
-
-
-export const addSubtitles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { subtitleText, startTime, endTime } = req.body;
-
-    const video = await prisma.video.findUnique({ where: { id } });
-    if (!video) res.status(404).json({ error: 'Video not found' });
-
-    const outputPath = path.join(videoFolderPath, `subtitled_${video?.name}`);
-    ffmpeg(video?.uploadUrl)
-      .outputOptions([`-vf subtitles=${subtitleText}:force_style='Alignment=2'`])
-      .output(outputPath)
-      .on('end', async () => {
-        await prisma.video.update({
-          where: { id },
-          data: { finalUrl: `subtitled_${video?.name}`, status: 'rendered' }
-        });
-        res.json({ message: 'Subtitles added successfully', filePath: outputPath });
-      })
-      .run();
-  } catch (error) {
-    res.status(500).json({ error: 'Error adding subtitles' });
-  }
-};
-
-
 // Render Final Video Handler
 export const renderVideo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
