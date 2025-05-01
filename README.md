@@ -19,6 +19,7 @@ This is a full-stack video editing platform that allows users to upload, trim, a
 
 ## Project Structure
 Project Structure
+```plaintext 
 video-editing-platform/
 ├── video-editing-backend/
 │   ├── src/
@@ -54,7 +55,7 @@ video-editing-platform/
 ├── README.md
 
 
-
+```
 
 ## Setup Instructions
 Backend Setup
