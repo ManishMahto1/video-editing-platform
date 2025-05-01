@@ -1,52 +1,23 @@
-Video Editing Platform
-A web-based video editing platform that allows users to upload videos, trim them, add subtitles (via .srt files or raw text), and render the final video. The frontend is built with React, TypeScript, and Tailwind CSS, providing a modern and responsive UI with a processing spinner for user feedback. The backend uses Node.js, Express, TypeScript, Prisma (with MySQL), and FFmpeg for video processing.
-Table of Contents
+# Video Editing Platform
 
-Features
-Tech Stack
-Prerequisites
-Project Structure
-Setup Instructions
-Backend Setup
-Frontend Setup
+This is a full-stack video editing platform that allows users to upload, trim, add subtitles, render, and download videos. The project is divided into two parts: the **backend** and the **frontend**.
 
+## Features
 
-Video Upload: Upload MP4 videos for editing.
-Trimming: Trim videos by specifying start and end times.
-Subtitles: Add subtitles via .srt file upload or raw text input with timestamps (HH:MM:SS,mmm).
-Rendering: Render the final edited video with applied changes.
-User-Friendly UI: Modern, responsive frontend with loading spinners and animations.
-Backend Processing: Efficient video processing using FFmpeg and Prisma for database management.
+- **Frontend**:
+  - Built with React, TypeScript, and Vite.
+  - Upload videos, trim, add subtitles, and render them.
+  - Real-time status updates and video download functionality.
 
-Tech Stack
-Frontend
+- **Backend**:
+  - Built with Node.js, Express, and Prisma.
+  - Handles video uploads, processing, and storage.
+  - Provides REST APIs for video editing operations.
+  - Scheduled cleanup of old videos using `node-cron`.
 
-React: UI library for building components.
-TypeScript: Static typing for improved code quality.
-Tailwind CSS: Utility-first CSS for styling.
-Axios: HTTP client for API requests.
+---
 
-Backend
-
-Node.js: JavaScript runtime for the server.
-Express: Web framework for API routes.
-TypeScript: Static typing for backend code.
-Prisma: ORM for MySQL database.
-FFmpeg: Video processing for trimming and subtitle overlay.
-Multer: Middleware for handling file uploads.
-
-Database
-
-MySQL: Relational database for storing video metadata.
-
-Prerequisites
-
-Node.js (v16 or higher): Download
-MySQL (v8 or higher): Download
-FFmpeg: Download and add to system PATH (e.g., C:\ffmpeg\bin)
-Git: For cloning the repository.
-Nodemon (optional): For backend development with auto-restart.
-
+## Project Structure
 Project Structure
 video-editing-platform/
 ├── video-editing-backend/
@@ -82,75 +53,99 @@ video-editing-platform/
 │   └── tsconfig.json
 ├── README.md
 
-Setup Instructions
+
+
+
+## Setup Instructions
 Backend Setup
 
-Clone the Repository:
-git clone <https://github.com/ManishMahto1/video-editing-platform>
-cd video-editing-platform/video-editing-backend
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ManishMahto1/video-editing-platform
+   cd backend
+   ```
+2.Navigate to backend:
+```bash
+ cd ../video-editing-backend
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Set up environment variables:
+   ```bash
+    Create a `.env` file in the `backend` directory and add the following variables:
+    #DATABASE_URL=postgresql://username:password@localhost:5432/
+    VIDEO_CLEANUP_DAYS=1
+    DATABASE_URL="mysql://root:Manish@123@localhost:3306/video_editing_platform"
+
+    VITE_API_URL=http://localhost:5000/api
+    STORAGE_PATH=./Uploads
+   ```
+
+5. Run the backend server:
+   ```bash
+   Install MySQL and start the server.
+   Create a database:CREATE DATABASE video_editor;
+   ```
+
+6.Set Up FFmpeg:
+   ```bash
+   Download FFmpeg and extract to C:\ffmpeg.
+   Add C:\ffmpeg\bin to your system PATH.
+   Verify:ffmpeg -version
+   ```
 
 
-Install Dependencies:
-npm install
+7.Run Prisma Migrations:
+ ```bash
+   npx prisma migrate dev --name init
+   ```
 
+8.Start the Backend:
+```bash
+  npm run dev
+  The server will run on http://localhost:5000.
+   ```
 
-Set Up MySQL:
-
-Install MySQL and start the server.
-Create a database:CREATE DATABASE video_editor;
-
-
-Update .env with your MySQL credentials:DATABASE_URL="mysql://<user>:<password>@localhost:3306/video_editor"
-PORT=5000
-STORAGE_PATH=./Uploads
-
-
-
-
-Set Up FFmpeg:
-
-Download FFmpeg and extract to C:\ffmpeg.
-Add C:\ffmpeg\bin to your system PATH.
-Verify:ffmpeg -version
-
-
-
-
-Run Prisma Migrations:
-npx prisma migrate dev --name init
-
-
-Create Uploads Directory:
-mkdir Uploads
-
-
-Start the Backend:
-npm run dev
-
-The server will run on http://localhost:5000.
 
 
 Frontend Setup
 
-Navigate to Frontend:
-cd ../video-editing-frontend
+1.Navigate to Frontend:
+
+```bash
+ cd ../video-editing-frontend
+   ```
+
+2.Install Dependencies:
+
+```bash
+ npm install
+   ```
 
 
-Install Dependencies:
-npm install
-
-
-Set Up Tailwind CSS (if not already configured):
-
+3.Tailwind css setup
+```bash
+ Set Up Tailwind CSS (if not already configured):
 Ensure tailwind.config.js and src/index.css are set up (see Tailwind Docs).
 Verify Tailwind classes work in components.
+   ```
 
 
-Start the Frontend:
-npm start
+4.Start the Frontend:
 
-The app will run on http://localhost:5173.
+```bash
+ npm start
+ The app will run on http://localhost:5173.
+   ```
 
+
+
+
+
+```bash
 
 Usage
 
