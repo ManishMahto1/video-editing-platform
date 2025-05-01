@@ -3,8 +3,9 @@ import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import ffmpeg from 'fluent-ffmpeg';
-import multer from 'multer';
 
+import { srtUpload } from '../middlewares/fileUpload.middleware';
+import { log } from 'util';
 const prisma = new PrismaClient();
 const videoFolderPath = path.join(__dirname, '../Uploads/'); // Project root
 
@@ -16,29 +17,11 @@ if (!fs.existsSync(videoFolderPath)) {
 // Set FFmpeg path for Windows
 ffmpeg.setFfmpegPath('C:\\ffmpeg\\bin\\ffmpeg.exe');
 
-// Multer config for SRT
-const srtStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, videoFolderPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `temp_subtitles_${Date.now()}.srt`);
-  },
-});
 
-const srtUpload = multer({
-  storage: srtStorage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/plain' || file.originalname.endsWith('.srt')) {
-      cb(null, true);
-    } else {
-      console.error('Invalid file type:', file.mimetype);
-      
-    }
-  },
-}).single('srtFile');
 
 export const addSubtitles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+
+   console.log('Adding subtitles...')
   srtUpload(req, res, async (err) => {
     if (err) {
       console.error('Multer error:', err);
@@ -74,9 +57,9 @@ export const addSubtitles = async (req: Request, res: Response, next: NextFuncti
       }
 
       // Log paths for debugging
-      console.log('Input path:', inputPath);
+      /* console.log('Input path:', inputPath);
       console.log('Output path:', outputPath);
-      console.log('SRT path:', srtFile.path);
+      console.log('SRT path:', srtFile.path); */
 
       // Run FFmpeg with subtitles
       await new Promise<void>((resolve, reject) => {
@@ -151,6 +134,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
 
 // Trim Video Handler
 export const trimVideo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  console.log('Trimming video...');
   try {
     const { id } = req.params;
     const { start, end } = req.body;
@@ -187,6 +171,7 @@ export const trimVideo = async (req: Request, res: Response, next: NextFunction)
 };
 // Render Final Video Handler
 export const renderVideo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  console.log('Rendering video...');
   try {
     const { id } = req.params;
     const video = await prisma.video.findUnique({ where: { id } });
